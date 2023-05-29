@@ -11,6 +11,8 @@ from Crypto.Cipher import AES
 from Crypto import Random
 from sys import argv 
 from os import remove
+from pyperclip import copy
+import signal
 
 master_key = None
 filename = None
@@ -18,6 +20,17 @@ saved_copy = None
 BLOCK_SIZE = 16
 pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(BLOCK_SIZE - len(s) % BLOCK_SIZE)
 unpad = lambda s: s[:-ord(s[len(s) - 1:])]
+
+def clean_terminate(self, *args):
+	try:
+		remove(saved_copy)
+	except Exception as e:
+		error(e)
+	exit(0)
+	
+	
+def needs_auth():
+    return master_key is None
 
 def error(msg):
     print("ERROR: ", msg)
@@ -60,9 +73,27 @@ def retrieve():
     e_val = keyval.get(key, -1)
     if e_val != -1:
         d_val = decrypt(e_val)
-        print("Value: ", bytes.decode(d_val))
+        return bytes.decode(d_val)
+
+def retrieve_to_print():
+    if needs_auth():
+        error("Please authenticate first.")
+        return
+    val = retrieve()
+    print("Value: ", val)
+
+def retrieve_to_copy():
+    if needs_auth():
+        error("Please authenticate first.")
+        return
+    val = retrieve()
+    print("Value copied to clipboard.")
+    copy(val)
 
 def store():
+    if needs_auth():
+        error("Please authenticate first.")
+        return
     key = input("Key: ")
     value = input("Value: ")
     if key == "" or value == "":
@@ -81,14 +112,27 @@ def authenticate():
     master = getpass("Enter password: ")
     master_key = hashlib.sha256(master.encode("utf-8")).digest()
 
-options = [authenticate, store, retrieve]
+def authenticate_with_check():
+    global master_key
+    for i in range(3):
+        master = getpass("Enter password: ")
+        master_confirm = getpass("Re-enter password: ")
+        if master == master_confirm:
+            master_key = hashlib.sha256(master.encode("utf-8")).digest()
+            break
+        else:
+            error("Passwords mismatch")
+
+options = [authenticate, authenticate_with_check, store, retrieve_to_print, retrieve_to_copy]
 
 def menu():
     print("\n--- LocalSafe Key-Value Store ---\n")
     print("1) Authenticate")
-    print("2) Store key-value pair")
-    print("3) Retrieve value from key")
-    print("4) Exit")
+    print("2) Authenticate with Check")
+    print("3) Store key-value pair")
+    print("4) Get value from key")
+    print("5) Copy value from key")
+    print("6) Exit")
     print("\n-> ", end=" ")
 
 def interpreter():
@@ -104,6 +148,9 @@ def interpreter():
             error("Input is NaN")   
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, clean_terminate)
+    signal.signal(signal.SIGTERM, clean_terminate)
+
     if len(argv) > 1:
         filename = argv[1]
     else:
@@ -112,12 +159,7 @@ if __name__ == "__main__":
 
     saved_copy = filename + "_" + ''.join(random.choices(string.ascii_letters + string.digits, k = 8))
     copyfile(filename, saved_copy)
-
     interpreter()
-    try:
-        remove(saved_copy)
-    except Exception as e:
-        error(e)
     
     '''
     p = multiprocessing.Process(target = interpreter, name = "interpreter")
