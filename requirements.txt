@@ -1,3 +1,5 @@
+crypto
 base64
 hashlib
-Crypto
+shutil
+paperclip

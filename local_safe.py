@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-import multiprocessing
+# LocalSafe by Edargorter 
+#
+# Simple key-value store with encryption using multiple master keys 
+# 
+
+from multiprocessing import Process
 import random
 import string 
 from getpass import getpass
@@ -10,10 +15,12 @@ from shutil import copyfile
 from Crypto.Cipher import AES
 from Crypto import Random
 from sys import argv 
+from sys import exit
 from os import remove
 from pyperclip import copy
 import signal
 
+killed = False
 master_key = None
 filename = None
 saved_copy = None
@@ -21,13 +28,15 @@ BLOCK_SIZE = 16
 pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(BLOCK_SIZE - len(s) % BLOCK_SIZE)
 unpad = lambda s: s[:-ord(s[len(s) - 1:])]
 
-def clean_terminate(self, *args):
-	try:
-		remove(saved_copy)
-	except Exception as e:
-		error(e)
-	exit(0)
-	
+def clean_terminate(*args):
+    global killed
+    try:
+        if not killed:
+            killed = True
+            remove(saved_copy)
+    except Exception as e:
+        error(e)
+    exit(0)
 	
 def needs_auth():
     return master_key is None
@@ -136,6 +145,7 @@ def menu():
     print("\n-> ", end=" ")
 
 def interpreter():
+    print("\nFile in use: {}\nWith backup (deleted on exit): {}".format(filename, saved_copy))
     for i in range(100):
         menu()
         inp = input()
@@ -146,6 +156,7 @@ def interpreter():
                 break
         else:
             error("Input is NaN")   
+    clean_terminate()
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, clean_terminate)
@@ -162,12 +173,12 @@ if __name__ == "__main__":
     interpreter()
     
     '''
-    p = multiprocessing.Process(target = interpreter, name = "interpreter")
+    p = Process(target = interpreter, name = "interpreter")
     p.start()
     p.join(60)
 
     if p.is_alive():
-        print("Timeout... exiting.")
+        print("Time's up!")
         p.terminate()
         p.join()
         '''
