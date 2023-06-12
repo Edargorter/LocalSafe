@@ -79,25 +79,32 @@ def retrieve():
     if keyval is None:
         return 
     key = input("Key: ")
-    e_val = keyval.get(key, -1)
-    if e_val != -1:
+    e_val = keyval.get(key, None)
+    if e_val is not None:
         d_val = decrypt(e_val)
         return bytes.decode(d_val)
+    return None 
 
 def retrieve_to_print():
     if needs_auth():
         error("Please authenticate first.")
         return
     val = retrieve()
-    print("Value: ", val)
+    if val is not None:
+        print("Value: ", val)
+    else:
+        print("Key not found.")
 
 def retrieve_to_copy():
     if needs_auth():
         error("Please authenticate first.")
         return
     val = retrieve()
-    print("Value copied to clipboard.")
-    copy(val)
+    if val is not None:
+        copy(val)
+        print("Value copied to clipboard.")
+    else:
+        print("Key not found.")
 
 def store():
     if needs_auth():
