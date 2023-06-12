@@ -3,8 +3,8 @@
 A simple key-value store with encryption using multiple master keys 
 
 ## Run binary example 
-'''
-./dist/local_safe test_file
+```
+$ ./dist/local_safe test_file
 
 --- LocalSafe Key-Value Store ---
 
@@ -41,4 +41,4 @@ Value:  cool
 6) Exit
 
 ->  6  
-'''
+```
