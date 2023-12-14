@@ -42,18 +42,18 @@ def needs_auth():
     return master_key is None
 
 def error(msg):
-    print("ERROR: ", msg)
+    print("ERROR:", msg)
 
 def encrypt(raw):
     raw = pad(raw)
     iv = Random.new().read(AES.block_size)
-    cipher = AES.new(master_key, AES.MODE_CBC, iv)
+    cipher = AES.new(master_key, AES.MODE_GCM, iv)
     return base64.b64encode(iv + cipher.encrypt(bytes(raw.encode('utf-8'))))
  
 def decrypt(enc):
     enc = base64.b64decode(enc)
     iv = enc[:16]
-    cipher = AES.new(master_key, AES.MODE_CBC, iv)
+    cipher = AES.new(master_key, AES.MODE_GCM, iv)
     return unpad(cipher.decrypt(enc[16:]))
 
 def get_keyval():
@@ -62,17 +62,28 @@ def get_keyval():
         with open(filename, 'r') as f:
             lines = [i.strip() for i in f.readlines()]
             for line in lines:
-                d_line = line
-                dd_line = bytes.decode(decrypt(d_line))
-                key, val = dd_line.split()
-                d_key = bytes.decode(decrypt(key))
-                keyval[d_key] = val
+                try:
+                    d_line = line
+                    dd_line = bytes.decode(decrypt(d_line))
+                    key, val = dd_line.split()
+                    d_key = bytes.decode(decrypt(key))
+                    keyval[d_key] = val
+                except Exception as e:
+                    pass
     except Exception as e:
         error(e)
         print("You are not authenticated.")
         return None
 
     return keyval
+
+def getKeys():
+    if needs_auth():
+        error("Please authenticate first.")
+        return
+    keyval = get_keyval()
+    for i,k in enumerate(keyval.keys()):
+        print(f"{i+1}) {k}")
 
 def retrieve():
     keyval = get_keyval()
@@ -91,7 +102,7 @@ def retrieve_to_print():
         return
     val = retrieve()
     if val is not None:
-        print("Value: ", val)
+        print("Value:", val)
     else:
         print("Key not found.")
 
@@ -139,7 +150,7 @@ def authenticate_with_check():
         else:
             error("Passwords mismatch")
 
-options = [authenticate, authenticate_with_check, store, retrieve_to_print, retrieve_to_copy]
+options = [authenticate, authenticate_with_check, store, retrieve_to_print, retrieve_to_copy, getKeys]
 
 def menu():
     print("\n--- LocalSafe Key-Value Store ---\n")
@@ -148,7 +159,8 @@ def menu():
     print("3) Store key-value pair")
     print("4) Get value from key")
     print("5) Copy value from key")
-    print("6) Exit")
+    print("6) List keys")
+    print("7) Exit")
     print("\n-> ", end=" ")
 
 def interpreter():
@@ -176,7 +188,11 @@ if __name__ == "__main__":
         exit(1)
 
     saved_copy = filename + "_" + ''.join(random.choices(string.ascii_letters + string.digits, k = 8))
-    copyfile(filename, saved_copy)
+    try:
+        copyfile(filename, saved_copy)
+    except Exception as e:
+        print("File not found.")
+        exit(1)
     interpreter()
     
     '''
