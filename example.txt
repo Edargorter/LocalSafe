@@ -1,9 +1,3 @@
-# LocalSafe 
-
-A simple key-value store with encryption using multiple master keys 
-
-## Run binary example 
-```
 $ ./dist/local_safe testfile 
 
 File in use: testfile
@@ -77,4 +71,3 @@ Value: password123
 7) Exit
 
 ->  
-```
