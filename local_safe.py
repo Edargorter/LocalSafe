@@ -58,6 +58,7 @@ def decrypt(enc):
 
 def get_keyval():
     keyval = {}
+    kvref = []
     try:
         with open(filename, 'r') as f:
             lines = [i.strip() for i in f.readlines()]
@@ -68,6 +69,7 @@ def get_keyval():
                     key, val = dd_line.split()
                     d_key = bytes.decode(decrypt(key))
                     keyval[d_key] = val
+                    kvref.append(d_key)
                 except Exception as e:
                     pass
     except Exception as e:
@@ -75,25 +77,41 @@ def get_keyval():
         print("You are not authenticated.")
         return None
 
-    return keyval
+    return keyval, kvref
 
 def getKeys():
     if needs_auth():
         error("Please authenticate first.")
         return
-    keyval = get_keyval()
-    for i,k in enumerate(keyval.keys()):
-        print(f"{i+1}) {k}")
+    keyval, kvref = get_keyval()
+    if len(keyval.keys()) == 0:
+        print("No keys to list.")
+    else:
+        print("Keys: ")
+        for i in range(len(kvref)):
+            print(f"{i+1}) {kvref[i]}")
 
 def retrieve():
-    keyval = get_keyval()
+    keyval, kvref = get_keyval()
     if keyval is None:
         return 
-    key = input("Key: ")
+    while True:
+        key = input("Key: ")
+        if len(key) == 0:
+            continue
+        if key.isdigit():
+            key = int(key)
+            if key > 0 and key <= len(kvref):
+                key = kvref[key-1]
+                break
+        else:
+            break
+        
     e_val = keyval.get(key, None)
     if e_val is not None:
         d_val = decrypt(e_val)
         return bytes.decode(d_val)
+
     return None 
 
 def retrieve_to_print():
