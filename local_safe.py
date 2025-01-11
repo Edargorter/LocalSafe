@@ -14,8 +14,7 @@ import hashlib
 from shutil import copyfile 
 from Crypto.Cipher import AES
 from Crypto import Random
-from sys import argv 
-from sys import exit
+from sys import argv, exit
 from os import remove
 from pyperclip import copy
 import signal
